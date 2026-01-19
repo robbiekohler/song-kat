@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO } from '../lib/audioPlayer';
+import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO, DrumPattern, DRUM_PATTERN_INFO } from '../lib/audioPlayer';
 
 interface ChordPlayerProps {
   chords: string[];
@@ -29,6 +29,15 @@ export const INSTRUMENT_OPTIONS: InstrumentType[] = [
   'bell',
 ];
 
+export const DRUM_OPTIONS: DrumPattern[] = [
+  'none',
+  'rock',
+  'pop',
+  'ballad',
+  'shuffle',
+  'metronome',
+];
+
 export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }: ChordPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [tempo, setTempo] = useState(100);
@@ -36,6 +45,7 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
   const [beatsPerChord, setBeatsPerChord] = useState(4);
   const [showVoicingInfo, setShowVoicingInfo] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
+  const [drumPattern, setDrumPattern] = useState<DrumPattern>('rock');
   const playerRef = useRef(getPlayer());
 
   useEffect(() => {
@@ -60,7 +70,8 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
         beatsPerChord,
         (index) => setCurrentChordIndex(index),
         voicing,
-        instrument
+        instrument,
+        drumPattern
       );
       setIsPlaying(true);
     } catch (error) {
@@ -77,6 +88,13 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
 
   const handleInstrumentChange = (newInstrument: InstrumentType) => {
     setInstrument(newInstrument);
+    if (isPlaying) {
+      handleStop();
+    }
+  };
+
+  const handleDrumChange = (newPattern: DrumPattern) => {
+    setDrumPattern(newPattern);
     if (isPlaying) {
       handleStop();
     }
@@ -183,6 +201,31 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
               title={INSTRUMENT_INFO[inst].description}
             >
               {INSTRUMENT_INFO[inst].name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Drum pattern selector */}
+      <div className="mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Drums:
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+          {DRUM_OPTIONS.map((pattern) => (
+            <button
+              key={pattern}
+              onClick={() => handleDrumChange(pattern)}
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
+                drumPattern === pattern
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+              title={DRUM_PATTERN_INFO[pattern].description}
+            >
+              {DRUM_PATTERN_INFO[pattern].name}
             </button>
           ))}
         </div>

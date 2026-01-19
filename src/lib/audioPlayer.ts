@@ -1,5 +1,169 @@
 import * as Tone from 'tone';
 
+// ============ DRUM MACHINE ============
+
+export type DrumPattern = 'none' | 'rock' | 'pop' | 'ballad' | 'shuffle' | 'metronome';
+
+export const DRUM_PATTERN_INFO: Record<DrumPattern, { name: string; description: string }> = {
+  none: { name: 'No Drums', description: 'Chords only' },
+  rock: { name: 'Rock', description: 'Classic kick-snare pattern' },
+  pop: { name: 'Pop', description: 'Four on the floor with hi-hats' },
+  ballad: { name: 'Ballad', description: 'Soft, half-time feel' },
+  shuffle: { name: 'Shuffle', description: 'Swing triplet feel' },
+  metronome: { name: 'Click', description: 'Simple metronome click' },
+};
+
+// Drum hit patterns - 16 steps per bar (16th notes)
+// K = kick, S = snare, H = hi-hat closed, O = hi-hat open, . = rest
+const DRUM_PATTERNS: Record<Exclude<DrumPattern, 'none'>, { kick: string; snare: string; hihat: string }> = {
+  rock: {
+    kick:  'x...x...x...x...',
+    snare: '....x.......x...',
+    hihat: 'x.x.x.x.x.x.x.x.',
+  },
+  pop: {
+    kick:  'x...x...x...x...',
+    snare: '....x.......x...',
+    hihat: 'xxxxxxxxxxxxxxxx',
+  },
+  ballad: {
+    kick:  'x.......x.......',
+    snare: '........x.......',
+    hihat: 'x...x...x...x...',
+  },
+  shuffle: {
+    kick:  'x..x..x..x..x..x',
+    snare: '...x.....x.....x',
+    hihat: 'x.xx.xx.xx.xx.x.',
+  },
+  metronome: {
+    kick:  'x...x...x...x...',
+    snare: '................',
+    hihat: '................',
+  },
+};
+
+class DrumMachine {
+  private kick: Tone.MembraneSynth | null = null;
+  private snare: Tone.NoiseSynth | null = null;
+  private hihat: Tone.MetalSynth | null = null;
+  private sequence: Tone.Sequence | null = null;
+  private pattern: DrumPattern = 'none';
+  private isInitialized = false;
+
+  async init() {
+    if (this.isInitialized) return;
+
+    // Kick drum - deep, punchy
+    this.kick = new Tone.MembraneSynth({
+      pitchDecay: 0.05,
+      octaves: 6,
+      oscillator: { type: 'sine' },
+      envelope: {
+        attack: 0.001,
+        decay: 0.4,
+        sustain: 0.01,
+        release: 0.4,
+      },
+    }).toDestination();
+    this.kick.volume.value = -6;
+
+    // Snare - noise-based with some tone
+    this.snare = new Tone.NoiseSynth({
+      noise: { type: 'white' },
+      envelope: {
+        attack: 0.001,
+        decay: 0.2,
+        sustain: 0,
+        release: 0.1,
+      },
+    }).toDestination();
+    this.snare.volume.value = -10;
+
+    // Hi-hat - metallic
+    this.hihat = new Tone.MetalSynth({
+      envelope: {
+        attack: 0.001,
+        decay: 0.05,
+        release: 0.01,
+      },
+      harmonicity: 5.1,
+      modulationIndex: 32,
+      resonance: 4000,
+      octaves: 1.5,
+    }).toDestination();
+    this.hihat.volume.value = -18;
+
+    this.isInitialized = true;
+  }
+
+  setPattern(pattern: DrumPattern) {
+    this.pattern = pattern;
+  }
+
+  start(beatsPerChord: number = 4) {
+    if (this.pattern === 'none' || !this.isInitialized) return;
+
+    this.stop();
+
+    const patternData = DRUM_PATTERNS[this.pattern];
+    const steps = 16; // 16th notes per bar
+
+    // Create a sequence that plays through the pattern
+    this.sequence = new Tone.Sequence(
+      (time, step) => {
+        const idx = step % steps;
+
+        if (patternData.kick[idx] === 'x') {
+          this.kick?.triggerAttackRelease('C1', '8n', time);
+        }
+        if (patternData.snare[idx] === 'x') {
+          this.snare?.triggerAttackRelease('8n', time);
+        }
+        if (patternData.hihat[idx] === 'x') {
+          this.hihat?.triggerAttackRelease('C6', '32n', time);
+        }
+      },
+      Array.from({ length: steps * beatsPerChord }, (_, i) => i),
+      '16n'
+    );
+
+    this.sequence.loop = true;
+    this.sequence.start(0);
+  }
+
+  stop() {
+    if (this.sequence) {
+      this.sequence.stop();
+      this.sequence.dispose();
+      this.sequence = null;
+    }
+  }
+
+  dispose() {
+    this.stop();
+    this.kick?.dispose();
+    this.snare?.dispose();
+    this.hihat?.dispose();
+    this.kick = null;
+    this.snare = null;
+    this.hihat = null;
+    this.isInitialized = false;
+  }
+}
+
+// Singleton drum machine
+let drumMachineInstance: DrumMachine | null = null;
+
+export function getDrumMachine(): DrumMachine {
+  if (!drumMachineInstance) {
+    drumMachineInstance = new DrumMachine();
+  }
+  return drumMachineInstance;
+}
+
+// ============ VOICING STYLES ============
+
 // Voicing styles inspired by different guitar techniques
 export type VoicingStyle =
   | 'standard'    // Full chord voicings
@@ -300,9 +464,11 @@ export class ChordProgressionPlayer {
   private currentChordIndex: number = 0;
   private onChordChange?: (index: number) => void;
   private currentInstrument: InstrumentType = 'piano';
+  private drumMachine: DrumMachine;
 
   constructor() {
     // Synth will be created on first play (due to audio context restrictions)
+    this.drumMachine = getDrumMachine();
   }
 
   private async initSynth(instrument: InstrumentType) {
@@ -365,13 +531,18 @@ export class ChordProgressionPlayer {
     beatsPerChord: number = 4,
     onChordChange?: (index: number) => void,
     voicing: VoicingStyle = 'standard',
-    instrument: InstrumentType = 'piano'
+    instrument: InstrumentType = 'piano',
+    drumPattern: DrumPattern = 'none'
   ): Promise<void> {
     // Initialize audio context (must be triggered by user action)
     await Tone.start();
 
     await this.initSynth(instrument);
     if (!this.synth) return;
+
+    // Initialize drum machine
+    await this.drumMachine.init();
+    this.drumMachine.setPattern(drumPattern);
 
     this.onChordChange = onChordChange;
 
@@ -412,11 +583,17 @@ export class ChordProgressionPlayer {
     this.sequence.loop = true;
     this.sequence.start(0);
 
+    // Start drums (will only play if pattern is not 'none')
+    this.drumMachine.start(beatsPerChord);
+
     Tone.getTransport().start();
     this.isPlaying = true;
   }
 
   stop(): void {
+    // Stop drums
+    this.drumMachine.stop();
+
     if (this.sequence) {
       this.sequence.stop();
       this.sequence.dispose();

@@ -155,17 +155,20 @@ export function ProgressionCard({
 
       {/* Guitar chord diagrams */}
       {showGuitar && (
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+        <div className="mb-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
           {voicing !== 'standard' && (
             <p className="text-xs text-center text-gray-500 dark:text-gray-400 mb-3">
               Showing {voicing === 'power' || voicing === 'octave' || voicing === 'fifth_octave' ? 'power chord' : voicing} shapes
             </p>
           )}
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex flex-wrap gap-2 sm:gap-4 justify-center overflow-x-auto">
             {guitarChordNames.map((chord, index) => (
-              <GuitarChord key={`${chord}-${index}-${voicing}`} chord={chord} size="md" />
+              <GuitarChord key={`${chord}-${index}-${voicing}`} chord={chord} size="sm" />
             ))}
           </div>
+          <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2 sm:hidden">
+            Tap chord name for alternate voicings
+          </p>
         </div>
       )}
 

@@ -121,20 +121,20 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
           </label>
           <button
             onClick={() => setShowVoicingInfo(!showVoicingInfo)}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-1.5 -m-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 touch-manipulation"
             title="About voicing styles"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
           </button>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
           {VOICING_OPTIONS.map((v) => (
             <button
               key={v}
               onClick={() => handleVoicingChange(v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
                 voicing === v
                   ? 'bg-primary-500 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
@@ -170,12 +170,12 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
             Instrument:
           </label>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
           {INSTRUMENT_OPTIONS.map((inst) => (
             <button
               key={inst}
               onClick={() => handleInstrumentChange(inst)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
                 instrument === inst
                   ? 'bg-green-500 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
@@ -189,14 +189,14 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         {/* Play/Stop button */}
         <button
           onClick={isPlaying ? handleStop : handlePlay}
-          className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-2 rounded-lg font-medium transition-colors min-h-[44px] ${
             isPlaying
-              ? 'bg-red-500 hover:bg-red-600 text-white'
-              : 'bg-primary-500 hover:bg-primary-600 text-white'
+              ? 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white'
+              : 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white'
           }`}
         >
           {isPlaying ? (
@@ -219,7 +219,7 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
 
         {/* Tempo control */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600 dark:text-gray-400">
+          <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
             Tempo:
           </label>
           <input
@@ -228,16 +228,16 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
             max="180"
             value={tempo}
             onChange={(e) => handleTempoChange(parseInt(e.target.value))}
-            className="w-24 accent-primary-500"
+            className="w-20 sm:w-24 h-2 accent-primary-500"
           />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-12">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-10 sm:w-12 text-center">
             {tempo}
           </span>
         </div>
 
         {/* Beats per chord */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600 dark:text-gray-400">
+          <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
             Beats:
           </label>
           <select
@@ -248,7 +248,7 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
                 handleStop();
               }
             }}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm"
+            className="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm min-h-[36px]"
           >
             <option value={2}>2</option>
             <option value={4}>4</option>

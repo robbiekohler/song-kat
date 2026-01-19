@@ -106,7 +106,7 @@ export function Progressions() {
           Showing {filteredProgressions.length} of {modeProgressions.length} {selectedMode} progressions
         </p>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredProgressions.map((progression) => (
             <ProgressionCard
               key={progression.id}

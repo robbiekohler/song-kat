@@ -6,6 +6,7 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -17,4 +18,52 @@ body {
 .dark body {
   background-color: #1a1a2e;
   color: #ffffff;
+}
+
+/* Improve touch targets on mobile */
+@media (pointer: coarse) {
+  button, select, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.dark input[type="range"]::-webkit-slider-runnable-track {
+  background: #4b5563;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #6366f1;
+  margin-top: -7px;
 }

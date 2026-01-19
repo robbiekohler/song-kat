@@ -56,6 +56,9 @@ export function SongCard({ song, onProgressionClick }: SongCardProps) {
         <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
           {getDecade(song.year)}
         </span>
+        <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+          Key: {song.key}
+        </span>
       </div>
 
       {progression && (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPlayer, VoicingStyle, VOICING_INFO } from '../lib/audioPlayer';
+import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO } from '../lib/audioPlayer';
 
 interface ChordPlayerProps {
   chords: string[];
@@ -18,12 +18,24 @@ export const VOICING_OPTIONS: VoicingStyle[] = [
   'open',
 ];
 
+export const INSTRUMENT_OPTIONS: InstrumentType[] = [
+  'piano',
+  'electric_piano',
+  'acoustic_guitar',
+  'clean_guitar',
+  'organ',
+  'synth_pad',
+  'strings',
+  'bell',
+];
+
 export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }: ChordPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [tempo, setTempo] = useState(100);
   const [currentChordIndex, setCurrentChordIndex] = useState(-1);
   const [beatsPerChord, setBeatsPerChord] = useState(4);
   const [showVoicingInfo, setShowVoicingInfo] = useState(false);
+  const [instrument, setInstrument] = useState<InstrumentType>('piano');
   const playerRef = useRef(getPlayer());
 
   useEffect(() => {
@@ -47,7 +59,8 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
         tempo,
         beatsPerChord,
         (index) => setCurrentChordIndex(index),
-        voicing
+        voicing,
+        instrument
       );
       setIsPlaying(true);
     } catch (error) {
@@ -57,6 +70,13 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
 
   const handleVoicingChange = (newVoicing: VoicingStyle) => {
     onVoicingChange(newVoicing);
+    if (isPlaying) {
+      handleStop();
+    }
+  };
+
+  const handleInstrumentChange = (newInstrument: InstrumentType) => {
+    setInstrument(newInstrument);
     if (isPlaying) {
       handleStop();
     }
@@ -141,6 +161,31 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
             </div>
           </div>
         )}
+      </div>
+
+      {/* Instrument selector */}
+      <div className="mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Instrument:
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2 justify-center">
+          {INSTRUMENT_OPTIONS.map((inst) => (
+            <button
+              key={inst}
+              onClick={() => handleInstrumentChange(inst)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                instrument === inst
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+              title={INSTRUMENT_INFO[inst].description}
+            >
+              {INSTRUMENT_INFO[inst].name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Controls */}

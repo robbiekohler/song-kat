@@ -147,33 +147,216 @@ export function getChordNoteNames(
 }
 
 // Chord Player class
+// Instrument types
+export type InstrumentType =
+  | 'piano'
+  | 'electric_piano'
+  | 'acoustic_guitar'
+  | 'clean_guitar'
+  | 'organ'
+  | 'synth_pad'
+  | 'strings'
+  | 'bell';
+
+export const INSTRUMENT_INFO: Record<InstrumentType, { name: string; description: string }> = {
+  piano: { name: 'Piano', description: 'Warm acoustic piano sound' },
+  electric_piano: { name: 'Electric Piano', description: 'Rhodes-style electric piano' },
+  acoustic_guitar: { name: 'Acoustic Guitar', description: 'Nylon string guitar feel' },
+  clean_guitar: { name: 'Clean Electric', description: 'Clean electric guitar tone' },
+  organ: { name: 'Organ', description: 'Classic rock organ sound' },
+  synth_pad: { name: 'Synth Pad', description: 'Lush synthesizer pad' },
+  strings: { name: 'Strings', description: 'Orchestral string ensemble' },
+  bell: { name: 'Bell/Chime', description: 'Bright bell-like tones' },
+};
+
+// Instrument configurations
+function createInstrumentSynth(type: InstrumentType): Tone.PolySynth {
+  switch (type) {
+    case 'piano':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle8' },
+        envelope: {
+          attack: 0.005,
+          decay: 0.4,
+          sustain: 0.2,
+          release: 1.2,
+        },
+      });
+
+    case 'electric_piano':
+      return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 3.01,
+        modulationIndex: 14,
+        oscillator: { type: 'sine' },
+        envelope: {
+          attack: 0.002,
+          decay: 0.5,
+          sustain: 0.1,
+          release: 1.0,
+        },
+        modulation: { type: 'square' },
+        modulationEnvelope: {
+          attack: 0.002,
+          decay: 0.2,
+          sustain: 0,
+          release: 0.2,
+        },
+      });
+
+    case 'acoustic_guitar':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fmtriangle', modulationType: 'sine', modulationIndex: 2, harmonicity: 1.5 },
+        envelope: {
+          attack: 0.01,
+          decay: 0.3,
+          sustain: 0.1,
+          release: 0.8,
+        },
+      });
+
+    case 'clean_guitar':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 2, spread: 10 },
+        envelope: {
+          attack: 0.01,
+          decay: 0.2,
+          sustain: 0.3,
+          release: 0.6,
+        },
+      });
+
+    case 'organ':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine4' },  // Organ-like with harmonics
+        envelope: {
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.9,
+          release: 0.3,
+        },
+      });
+
+    case 'synth_pad':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 30 },
+        envelope: {
+          attack: 0.4,
+          decay: 0.3,
+          sustain: 0.8,
+          release: 2.0,
+        },
+      });
+
+    case 'strings':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 4, spread: 20 },
+        envelope: {
+          attack: 0.3,
+          decay: 0.2,
+          sustain: 0.7,
+          release: 1.5,
+        },
+      });
+
+    case 'bell':
+      return new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 5.1,
+        modulationIndex: 3,
+        oscillator: { type: 'sine' },
+        envelope: {
+          attack: 0.001,
+          decay: 1.5,
+          sustain: 0,
+          release: 2.0,
+        },
+        modulation: { type: 'sine' },
+        modulationEnvelope: {
+          attack: 0.001,
+          decay: 0.5,
+          sustain: 0,
+          release: 0.5,
+        },
+      });
+
+    default:
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: {
+          attack: 0.02,
+          decay: 0.3,
+          sustain: 0.4,
+          release: 0.8,
+        },
+      });
+  }
+}
+
 export class ChordProgressionPlayer {
   private synth: Tone.PolySynth | null = null;
   private sequence: Tone.Sequence | null = null;
+  private reverb: Tone.Reverb | null = null;
+  private chorus: Tone.Chorus | null = null;
   private isPlaying: boolean = false;
   private currentChordIndex: number = 0;
   private onChordChange?: (index: number) => void;
+  private currentInstrument: InstrumentType = 'piano';
 
   constructor() {
     // Synth will be created on first play (due to audio context restrictions)
   }
 
-  private initSynth() {
+  private async initSynth(instrument: InstrumentType) {
+    // Dispose existing synth if changing instruments
+    if (this.synth && this.currentInstrument !== instrument) {
+      this.synth.dispose();
+      this.synth = null;
+    }
+
     if (this.synth) return;
 
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: 'triangle',
-      },
-      envelope: {
-        attack: 0.02,
-        decay: 0.3,
-        sustain: 0.4,
-        release: 0.8,
-      },
-    }).toDestination();
+    // Create effects chain
+    if (!this.reverb) {
+      this.reverb = new Tone.Reverb({
+        decay: 2.5,
+        wet: 0.3,
+      });
+      await this.reverb.generate();
+    }
 
-    this.synth.volume.value = -6; // Reduce volume a bit
+    if (!this.chorus) {
+      this.chorus = new Tone.Chorus({
+        frequency: 1.5,
+        delayTime: 3.5,
+        depth: 0.7,
+        wet: 0.3,
+      }).start();
+    }
+
+    // Create synth based on instrument type
+    this.synth = createInstrumentSynth(instrument);
+    this.currentInstrument = instrument;
+
+    // Set up effects chain based on instrument
+    if (instrument === 'synth_pad' || instrument === 'strings') {
+      this.reverb.wet.value = 0.5;
+      this.chorus.wet.value = 0.4;
+      this.synth.chain(this.chorus, this.reverb, Tone.getDestination());
+    } else if (instrument === 'electric_piano' || instrument === 'organ') {
+      this.reverb.wet.value = 0.25;
+      this.chorus.wet.value = 0.3;
+      this.synth.chain(this.chorus, this.reverb, Tone.getDestination());
+    } else if (instrument === 'bell') {
+      this.reverb.wet.value = 0.6;
+      this.synth.connect(this.reverb);
+      this.reverb.toDestination();
+    } else {
+      this.reverb.wet.value = 0.2;
+      this.synth.connect(this.reverb);
+      this.reverb.toDestination();
+    }
+
+    // Set volume
+    this.synth.volume.value = -8;
   }
 
   async play(
@@ -181,12 +364,13 @@ export class ChordProgressionPlayer {
     bpm: number = 120,
     beatsPerChord: number = 4,
     onChordChange?: (index: number) => void,
-    voicing: VoicingStyle = 'standard'
+    voicing: VoicingStyle = 'standard',
+    instrument: InstrumentType = 'piano'
   ): Promise<void> {
     // Initialize audio context (must be triggered by user action)
     await Tone.start();
 
-    this.initSynth();
+    await this.initSynth(instrument);
     if (!this.synth) return;
 
     this.onChordChange = onChordChange;

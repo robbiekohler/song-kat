@@ -162,6 +162,28 @@ export function getDrumMachine(): DrumMachine {
   return drumMachineInstance;
 }
 
+// ============ CHORD RHYTHM PATTERNS ============
+
+export type ChordRhythm = 'sustain' | 'quarter' | 'eighth' | 'offbeat' | 'syncopated' | 'arpeggio';
+
+export const CHORD_RHYTHM_INFO: Record<ChordRhythm, { name: string; description: string }> = {
+  sustain: { name: 'Sustain', description: 'Hold the chord' },
+  quarter: { name: 'Quarter', description: 'Hit on each beat' },
+  eighth: { name: 'Eighth', description: 'Hit twice per beat' },
+  offbeat: { name: 'Offbeat', description: 'Hit on the "and"s' },
+  syncopated: { name: 'Syncopated', description: 'Funky rhythm pattern' },
+  arpeggio: { name: 'Arpeggio', description: 'Play notes one at a time' },
+};
+
+// Rhythm patterns - 16 steps per bar (16th notes), x = hit, . = rest
+// These patterns repeat every bar (within the chord duration)
+const CHORD_RHYTHM_PATTERNS: Record<Exclude<ChordRhythm, 'sustain' | 'arpeggio'>, string> = {
+  quarter:    'x...x...x...x...',  // On beats 1, 2, 3, 4
+  eighth:     'x.x.x.x.x.x.x.x.',  // Every 8th note
+  offbeat:    '..x...x...x...x.',  // On the "and"s
+  syncopated: 'x..x..x...x.x...',  // Funky pattern
+};
+
 // ============ VOICING STYLES ============
 
 // Voicing styles inspired by different guitar techniques
@@ -532,7 +554,8 @@ export class ChordProgressionPlayer {
     onChordChange?: (index: number) => void,
     voicing: VoicingStyle = 'standard',
     instrument: InstrumentType = 'piano',
-    drumPattern: DrumPattern = 'none'
+    drumPattern: DrumPattern = 'none',
+    chordRhythm: ChordRhythm = 'sustain'
   ): Promise<void> {
     // Initialize audio context (must be triggered by user action)
     await Tone.start();
@@ -555,30 +578,90 @@ export class ChordProgressionPlayer {
     // Create sequence with the selected voicing
     const chordNotes = chords.map(chord => getChordNoteNames(chord, 3, voicing));
 
-    this.sequence = new Tone.Sequence(
-      (time, index) => {
-        // Release previous notes
-        this.synth?.releaseAll(time);
+    // Calculate steps per chord (16th notes per beat * beats per chord)
+    const stepsPerBeat = 4; // 16th notes
+    const stepsPerChord = stepsPerBeat * beatsPerChord;
+    const totalSteps = stepsPerChord * chords.length;
 
-        // Play new chord
-        const notes = chordNotes[index as number];
-        if (notes.length > 0) {
-          this.synth?.triggerAttack(notes, time);
-        }
+    if (chordRhythm === 'sustain') {
+      // Original behavior - trigger once and hold
+      this.sequence = new Tone.Sequence(
+        (time, index) => {
+          this.synth?.releaseAll(time);
+          const notes = chordNotes[index as number];
+          if (notes.length > 0) {
+            this.synth?.triggerAttack(notes, time);
+          }
+          this.currentChordIndex = index as number;
+          if (this.onChordChange) {
+            Tone.getDraw().schedule(() => {
+              this.onChordChange?.(index as number);
+            }, time);
+          }
+        },
+        Array.from({ length: chords.length }, (_, i) => i),
+        `${beatsPerChord}n`
+      );
+    } else if (chordRhythm === 'arpeggio') {
+      // Arpeggio - play notes one at a time
+      this.sequence = new Tone.Sequence(
+        (time, step) => {
+          const chordIndex = Math.floor(step / stepsPerChord);
+          const stepInChord = step % stepsPerChord;
+          const notes = chordNotes[chordIndex];
 
-        // Update current chord index
-        this.currentChordIndex = index as number;
+          // Update chord index on first step of each chord
+          if (stepInChord === 0) {
+            this.currentChordIndex = chordIndex;
+            if (this.onChordChange) {
+              Tone.getDraw().schedule(() => {
+                this.onChordChange?.(chordIndex);
+              }, time);
+            }
+          }
 
-        // Callback for UI update (schedule slightly after to ensure state updates)
-        if (this.onChordChange) {
-          Tone.getDraw().schedule(() => {
-            this.onChordChange?.(index as number);
-          }, time);
-        }
-      },
-      Array.from({ length: chords.length }, (_, i) => i),
-      `${beatsPerChord}n`
-    );
+          if (notes.length > 0) {
+            // Play one note per step, cycling through the chord notes
+            const noteIndex = stepInChord % notes.length;
+            // Only play on every other 16th note for a nice arpeggio feel
+            if (stepInChord % 2 === 0) {
+              this.synth?.triggerAttackRelease(notes[noteIndex], '8n', time);
+            }
+          }
+        },
+        Array.from({ length: totalSteps }, (_, i) => i),
+        '16n'
+      );
+    } else {
+      // Rhythmic patterns - trigger based on pattern
+      const pattern = CHORD_RHYTHM_PATTERNS[chordRhythm];
+
+      this.sequence = new Tone.Sequence(
+        (time, step) => {
+          const chordIndex = Math.floor(step / stepsPerChord);
+          const stepInChord = step % stepsPerChord;
+          const patternStep = stepInChord % 16; // Pattern repeats every 16 steps (1 bar)
+          const notes = chordNotes[chordIndex];
+
+          // Update chord index on first step of each chord
+          if (stepInChord === 0) {
+            this.currentChordIndex = chordIndex;
+            if (this.onChordChange) {
+              Tone.getDraw().schedule(() => {
+                this.onChordChange?.(chordIndex);
+              }, time);
+            }
+          }
+
+          // Check if we should hit on this step
+          if (pattern[patternStep] === 'x' && notes.length > 0) {
+            this.synth?.triggerAttackRelease(notes, '8n', time);
+          }
+        },
+        Array.from({ length: totalSteps }, (_, i) => i),
+        '16n'
+      );
+    }
 
     this.sequence.loop = true;
     this.sequence.start(0);

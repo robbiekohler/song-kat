@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO, DrumPattern, DRUM_PATTERN_INFO } from '../lib/audioPlayer';
+import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO, DrumPattern, DRUM_PATTERN_INFO, ChordRhythm, CHORD_RHYTHM_INFO } from '../lib/audioPlayer';
 
 interface ChordPlayerProps {
   chords: string[];
@@ -38,6 +38,15 @@ export const DRUM_OPTIONS: DrumPattern[] = [
   'metronome',
 ];
 
+export const RHYTHM_OPTIONS: ChordRhythm[] = [
+  'sustain',
+  'quarter',
+  'eighth',
+  'offbeat',
+  'syncopated',
+  'arpeggio',
+];
+
 export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }: ChordPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [tempo, setTempo] = useState(100);
@@ -46,6 +55,7 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
   const [showVoicingInfo, setShowVoicingInfo] = useState(false);
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
   const [drumPattern, setDrumPattern] = useState<DrumPattern>('rock');
+  const [chordRhythm, setChordRhythm] = useState<ChordRhythm>('quarter');
   const playerRef = useRef(getPlayer());
 
   useEffect(() => {
@@ -71,7 +81,8 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
         (index) => setCurrentChordIndex(index),
         voicing,
         instrument,
-        drumPattern
+        drumPattern,
+        chordRhythm
       );
       setIsPlaying(true);
     } catch (error) {
@@ -95,6 +106,13 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
 
   const handleDrumChange = (newPattern: DrumPattern) => {
     setDrumPattern(newPattern);
+    if (isPlaying) {
+      handleStop();
+    }
+  };
+
+  const handleRhythmChange = (newRhythm: ChordRhythm) => {
+    setChordRhythm(newRhythm);
     if (isPlaying) {
       handleStop();
     }
@@ -226,6 +244,31 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
               title={DRUM_PATTERN_INFO[pattern].description}
             >
               {DRUM_PATTERN_INFO[pattern].name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chord rhythm selector */}
+      <div className="mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Chord Rhythm:
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+          {RHYTHM_OPTIONS.map((rhythm) => (
+            <button
+              key={rhythm}
+              onClick={() => handleRhythmChange(rhythm)}
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
+                chordRhythm === rhythm
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+              title={CHORD_RHYTHM_INFO[rhythm].description}
+            >
+              {CHORD_RHYTHM_INFO[rhythm].name}
             </button>
           ))}
         </div>

@@ -12,15 +12,14 @@ const WHITE_KEYS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const BLACK_KEYS = ['C#', 'D#', null, 'F#', 'G#', 'A#', null]; // null = no black key after E and B
 
 // Keyboard mapping - bottom row for white keys, top row for black keys
+// Starts at middle C (C4) so you get a full octave with the home row
 const KEY_TO_NOTE: Record<string, string> = {
-  // Bottom row - white keys (octave 3)
-  'a': 'C3', 's': 'D3', 'd': 'E3', 'f': 'F3', 'g': 'G3', 'h': 'A3', 'j': 'B3',
-  // Continue white keys (octave 4)
-  'k': 'C4', 'l': 'D4', ';': 'E4', "'": 'F4',
-  // Top row - black keys (octave 3)
-  'w': 'C#3', 'e': 'D#3', 't': 'F#3', 'y': 'G#3', 'u': 'A#3',
-  // Continue black keys (octave 4)
-  'o': 'C#4', 'p': 'D#4',
+  // Bottom row - white keys starting at middle C (C4)
+  'a': 'C4', 's': 'D4', 'd': 'E4', 'f': 'F4', 'g': 'G4', 'h': 'A4', 'j': 'B4',
+  // Continue white keys (octave 5)
+  'k': 'C5',
+  // Top row - black keys (octave 4)
+  'w': 'C#4', 'e': 'D#4', 't': 'F#4', 'y': 'G#4', 'u': 'A#4',
 };
 
 // Reverse mapping: note -> keyboard key
@@ -141,7 +140,7 @@ export function PianoKeyboard({
           Keyboard
         </label>
         <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
-          (use A-L keys or tap)
+          (use A-K keys or tap)
         </span>
         <span className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
           (tap to play)

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 
 interface PianoKeyboardProps {
@@ -11,6 +11,24 @@ interface PianoKeyboardProps {
 const WHITE_KEYS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const BLACK_KEYS = ['C#', 'D#', null, 'F#', 'G#', 'A#', null]; // null = no black key after E and B
 
+// Keyboard mapping - bottom row for white keys, top row for black keys
+const KEY_TO_NOTE: Record<string, string> = {
+  // Bottom row - white keys (octave 3)
+  'a': 'C3', 's': 'D3', 'd': 'E3', 'f': 'F3', 'g': 'G3', 'h': 'A3', 'j': 'B3',
+  // Continue white keys (octave 4)
+  'k': 'C4', 'l': 'D4', ';': 'E4', "'": 'F4',
+  // Top row - black keys (octave 3)
+  'w': 'C#3', 'e': 'D#3', 't': 'F#3', 'y': 'G#3', 'u': 'A#3',
+  // Continue black keys (octave 4)
+  'o': 'C#4', 'p': 'D#4',
+};
+
+// Reverse mapping: note -> keyboard key
+const NOTE_TO_KEY: Record<string, string> = Object.entries(KEY_TO_NOTE).reduce(
+  (acc, [key, note]) => ({ ...acc, [note]: key.toUpperCase() }),
+  {}
+);
+
 export function PianoKeyboard({
   className = '',
   startOctave = 3,
@@ -20,16 +38,8 @@ export function PianoKeyboard({
   const [activeNote, setActiveNote] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (synthRef.current) {
-        synthRef.current.dispose();
-      }
-    };
-  }, []);
-
-  const initSynth = async () => {
-    if (isInitialized) return;
+  const initSynth = useCallback(async () => {
+    if (isInitialized) return true;
 
     await Tone.start();
 
@@ -45,16 +55,46 @@ export function PianoKeyboard({
     synthRef.current.volume.value = -6;
 
     setIsInitialized(true);
-  };
+    return true;
+  }, [isInitialized]);
 
-  const playNote = async (note: string) => {
+  const playNote = useCallback(async (note: string) => {
     await initSynth();
     if (synthRef.current) {
       synthRef.current.triggerAttackRelease(note, '8n');
       setActiveNote(note);
       setTimeout(() => setActiveNote(null), 200);
     }
-  };
+  }, [initSynth]);
+
+  // Keyboard event handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      const note = KEY_TO_NOTE[key];
+
+      if (note && !e.repeat) {
+        e.preventDefault();
+        playNote(note);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [playNote]);
+
+  useEffect(() => {
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.dispose();
+      }
+    };
+  }, []);
 
   // Generate all keys for the specified octaves
   const keys: { note: string; isBlack: boolean; position: number }[] = [];
@@ -100,8 +140,11 @@ export function PianoKeyboard({
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Keyboard
         </label>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          (tap to hear notes)
+        <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+          (use A-L keys or tap)
+        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+          (tap to play)
         </span>
       </div>
 
@@ -114,28 +157,36 @@ export function PianoKeyboard({
           }}
         >
           {/* White keys */}
-          {whiteKeys.map((key) => (
-            <button
-              key={key.note}
-              onClick={() => playNote(key.note)}
-              className={`
-                relative flex flex-col items-center justify-end pb-1
-                w-9 h-28 sm:h-32
-                border border-gray-300 dark:border-gray-600
-                rounded-b-md
-                transition-colors duration-75
-                ${activeNote === key.note
-                  ? 'bg-primary-200 dark:bg-primary-800'
-                  : 'bg-white dark:bg-gray-200 hover:bg-gray-100 dark:hover:bg-gray-100'
-                }
-              `}
-              style={{ zIndex: 1 }}
-            >
-              <span className="text-xs text-gray-500 dark:text-gray-600 font-medium">
-                {key.note.replace(/\d/, '')}
-              </span>
-            </button>
-          ))}
+          {whiteKeys.map((key) => {
+            const shortcut = NOTE_TO_KEY[key.note];
+            return (
+              <button
+                key={key.note}
+                onClick={() => playNote(key.note)}
+                className={`
+                  relative flex flex-col items-center justify-end pb-1
+                  w-9 h-28 sm:h-32
+                  border border-gray-300 dark:border-gray-600
+                  rounded-b-md
+                  transition-colors duration-75
+                  ${activeNote === key.note
+                    ? 'bg-primary-200 dark:bg-primary-800'
+                    : 'bg-white dark:bg-gray-200 hover:bg-gray-100 dark:hover:bg-gray-100'
+                  }
+                `}
+                style={{ zIndex: 1 }}
+              >
+                {shortcut && (
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 hidden sm:block">
+                    {shortcut}
+                  </span>
+                )}
+                <span className="text-xs text-gray-500 dark:text-gray-600 font-medium">
+                  {key.note.replace(/\d/, '')}
+                </span>
+              </button>
+            );
+          })}
 
           {/* Black keys - positioned absolutely */}
           {blackKeys.map((key) => (

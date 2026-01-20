@@ -3,6 +3,7 @@ import { ChordProgression, MusicalKey, Mode } from '../types';
 import { translateProgressionToKey } from '../lib/chordUtils';
 import { GuitarChord } from './GuitarChord';
 import { ChordPlayer } from './ChordPlayer';
+import { PianoKeyboard } from './PianoKeyboard';
 import { VoicingStyle } from '../lib/audioPlayer';
 
 interface ProgressionCardProps {
@@ -51,6 +52,7 @@ export function ProgressionCard({
 }: ProgressionCardProps) {
   const [showGuitar, setShowGuitar] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showKeyboard, setShowKeyboard] = useState(false);
   const [showAllSongs, setShowAllSongs] = useState(false);
   const [voicing, setVoicing] = useState<VoicingStyle>('standard');
 
@@ -113,6 +115,20 @@ export function ProgressionCard({
               <line x1="12" y1="7" x2="12" y2="17" />
             </svg>
           </button>
+          {/* Keyboard button */}
+          <button
+            onClick={() => setShowKeyboard(!showKeyboard)}
+            className={`p-1.5 rounded-lg transition-colors ${
+              showKeyboard
+                ? 'bg-cyan-500 text-white'
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            title={showKeyboard ? 'Hide keyboard' : 'Show keyboard'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H4V5h16v14zM6 13h2v4H6zm3-4h2v8H9zm3 0h2v8h-2zm3 4h2v4h-2z"/>
+            </svg>
+          </button>
           {showSaveButton && onSave && (
             <button
               onClick={onSave}
@@ -170,6 +186,11 @@ export function ProgressionCard({
             Tap chord name for alternate voicings
           </p>
         </div>
+      )}
+
+      {/* Piano keyboard for finding melody notes */}
+      {showKeyboard && (
+        <PianoKeyboard className="mb-4" />
       )}
 
       <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">

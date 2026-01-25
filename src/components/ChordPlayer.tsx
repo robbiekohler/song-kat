@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO, DrumPattern, DRUM_PATTERN_INFO, ChordRhythm, CHORD_RHYTHM_INFO } from '../lib/audioPlayer';
+import { getPlayer, VoicingStyle, VOICING_INFO, InstrumentType, INSTRUMENT_INFO, DrumPattern, DRUM_PATTERN_INFO, ChordRhythm, CHORD_RHYTHM_INFO, BassPattern, BASS_PATTERN_INFO } from '../lib/audioPlayer';
 
 interface ChordPlayerProps {
   chords: string[];
@@ -35,6 +35,8 @@ export const DRUM_OPTIONS: DrumPattern[] = [
   'pop',
   'ballad',
   'shuffle',
+  'texas_blues',
+  'slow_blues',
   'metronome',
 ];
 
@@ -47,6 +49,14 @@ export const RHYTHM_OPTIONS: ChordRhythm[] = [
   'arpeggio',
 ];
 
+export const BASS_OPTIONS: BassPattern[] = [
+  'none',
+  'root',
+  'blues_shuffle',
+  'walking_blues',
+  'texas_bass',
+];
+
 export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }: ChordPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [tempo, setTempo] = useState(100);
@@ -56,6 +66,7 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
   const [drumPattern, setDrumPattern] = useState<DrumPattern>('rock');
   const [chordRhythm, setChordRhythm] = useState<ChordRhythm>('quarter');
+  const [bassPattern, setBassPattern] = useState<BassPattern>('none');
   const playerRef = useRef(getPlayer());
 
   useEffect(() => {
@@ -82,7 +93,8 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
         voicing,
         instrument,
         drumPattern,
-        chordRhythm
+        chordRhythm,
+        bassPattern
       );
       setIsPlaying(true);
     } catch (error) {
@@ -113,6 +125,13 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
 
   const handleRhythmChange = (newRhythm: ChordRhythm) => {
     setChordRhythm(newRhythm);
+    if (isPlaying) {
+      handleStop();
+    }
+  };
+
+  const handleBassChange = (newBassPattern: BassPattern) => {
+    setBassPattern(newBassPattern);
     if (isPlaying) {
       handleStop();
     }
@@ -244,6 +263,31 @@ export function ChordPlayer({ chords, className = '', voicing, onVoicingChange }
               title={DRUM_PATTERN_INFO[pattern].description}
             >
               {DRUM_PATTERN_INFO[pattern].name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bass pattern selector */}
+      <div className="mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Bass:
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+          {BASS_OPTIONS.map((pattern) => (
+            <button
+              key={pattern}
+              onClick={() => handleBassChange(pattern)}
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
+                bassPattern === pattern
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+              }`}
+              title={BASS_PATTERN_INFO[pattern].description}
+            >
+              {BASS_PATTERN_INFO[pattern].name}
             </button>
           ))}
         </div>

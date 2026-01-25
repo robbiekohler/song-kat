@@ -2,7 +2,7 @@ import * as Tone from 'tone';
 
 // ============ DRUM MACHINE ============
 
-export type DrumPattern = 'none' | 'rock' | 'pop' | 'ballad' | 'shuffle' | 'metronome';
+export type DrumPattern = 'none' | 'rock' | 'pop' | 'ballad' | 'shuffle' | 'texas_blues' | 'slow_blues' | 'metronome';
 
 export const DRUM_PATTERN_INFO: Record<DrumPattern, { name: string; description: string }> = {
   none: { name: 'No Drums', description: 'Chords only' },
@@ -10,6 +10,8 @@ export const DRUM_PATTERN_INFO: Record<DrumPattern, { name: string; description:
   pop: { name: 'Pop', description: 'Four on the floor with hi-hats' },
   ballad: { name: 'Ballad', description: 'Soft, half-time feel' },
   shuffle: { name: 'Shuffle', description: 'Swing triplet feel' },
+  texas_blues: { name: 'Texas Blues', description: 'Texas shuffle with driving feel' },
+  slow_blues: { name: 'Slow Blues', description: 'Laid-back, triplet blues feel' },
   metronome: { name: 'Click', description: 'Simple metronome click' },
 };
 
@@ -35,6 +37,16 @@ const DRUM_PATTERNS: Record<Exclude<DrumPattern, 'none'>, { kick: string; snare:
     kick:  'x..x..x..x..x..x',
     snare: '...x.....x.....x',
     hihat: 'x.xx.xx.xx.xx.x.',
+  },
+  texas_blues: {
+    kick:  'x..x..x.x..x..x.',  // Texas shuffle kick
+    snare: '....x.......x...',  // Backbeat on 2 and 4
+    hihat: 'x.xx.xx.x.xx.xx.',  // Shuffle hi-hat
+  },
+  slow_blues: {
+    kick:  'x.....x...x.....',  // Sparse, laid-back
+    snare: '....x.......x...',  // Heavy backbeat
+    hihat: 'x..x..x.x..x..x.',  // Triplet feel
   },
   metronome: {
     kick:  'x...x...x...x...',
@@ -160,6 +172,149 @@ export function getDrumMachine(): DrumMachine {
     drumMachineInstance = new DrumMachine();
   }
   return drumMachineInstance;
+}
+
+// ============ BASS SYNTH ============
+
+export type BassPattern = 'none' | 'root' | 'blues_shuffle' | 'walking_blues' | 'texas_bass';
+
+export const BASS_PATTERN_INFO: Record<BassPattern, { name: string; description: string }> = {
+  none: { name: 'No Bass', description: 'No bass line' },
+  root: { name: 'Root Notes', description: 'Simple quarter note roots' },
+  blues_shuffle: { name: 'Blues Shuffle', description: 'Classic shuffle (root-5th-6th-5th)' },
+  walking_blues: { name: 'Walking Blues', description: 'Walking eighth notes' },
+  texas_bass: { name: 'Texas Bass', description: 'Texas swing feel' },
+};
+
+// Bass patterns - 16 steps per bar (16th notes)
+// Pattern encodes which scale degree to play: r = root, 5 = 5th, 6 = 6th, . = rest
+const BASS_PATTERNS: Record<Exclude<BassPattern, 'none'>, string> = {
+  root:          'r...r...r...r...',  // Simple quarter notes
+  blues_shuffle: 'r..5..6.r..5..6.',  // Classic shuffle (root-5th-6th pattern)
+  walking_blues: 'r.5.6.5.r.5.6.5.',  // Walking eighth notes
+  texas_bass:    'r..rr.5.r..rr.6.',  // Texas swing feel with syncopation
+};
+
+class BassSynth {
+  private synth: Tone.MonoSynth | null = null;
+  private sequence: Tone.Sequence | null = null;
+  private pattern: BassPattern = 'none';
+  private isInitialized = false;
+
+  async init() {
+    if (this.isInitialized) return;
+
+    // Create a warm, round bass tone with slight grit
+    this.synth = new Tone.MonoSynth({
+      oscillator: {
+        type: 'fmsawtooth',
+        modulationType: 'sine',
+        modulationIndex: 2,
+        harmonicity: 1,
+      },
+      envelope: {
+        attack: 0.02,
+        decay: 0.3,
+        sustain: 0.4,
+        release: 0.5,
+      },
+      filter: {
+        Q: 2,
+        type: 'lowpass',
+        rolloff: -24,
+      },
+      filterEnvelope: {
+        attack: 0.02,
+        decay: 0.2,
+        sustain: 0.3,
+        release: 0.5,
+        baseFrequency: 200,
+        octaves: 2,
+      },
+    }).toDestination();
+
+    this.synth.volume.value = -4;
+    this.isInitialized = true;
+  }
+
+  setPattern(pattern: BassPattern) {
+    this.pattern = pattern;
+  }
+
+  // Get bass note for a given scale degree relative to root
+  private getBassNote(degree: string, rootNote: string): string {
+    const rootMidi = ROOT_NOTES[rootNote];
+    if (rootMidi === undefined) return 'C2';
+
+    const baseMidi = 12 * 3 + rootMidi; // Octave 2 for deep bass
+
+    switch (degree) {
+      case 'r': return midiToNoteName(baseMidi);
+      case '5': return midiToNoteName(baseMidi + 7);  // Perfect 5th
+      case '6': return midiToNoteName(baseMidi + 9);  // Major 6th (blues 6th)
+      default: return midiToNoteName(baseMidi);
+    }
+  }
+
+  start(chords: string[], beatsPerChord: number = 4) {
+    if (this.pattern === 'none' || !this.isInitialized) return;
+
+    this.stop();
+
+    const patternData = BASS_PATTERNS[this.pattern];
+    const steps = 16;
+    const stepsPerChord = steps * beatsPerChord / 4; // Normalize to steps per chord
+    const totalSteps = stepsPerChord * chords.length;
+
+    this.sequence = new Tone.Sequence(
+      (time, step) => {
+        const chordIndex = Math.floor(step / stepsPerChord);
+        const stepInChord = step % stepsPerChord;
+        const patternStep = stepInChord % 16;
+
+        // Get the root note from the current chord
+        const chord = chords[chordIndex];
+        const match = chord.match(/^([A-G][#b]?)/);
+        const rootNote = match ? match[1] : 'C';
+
+        const degree = patternData[patternStep];
+        if (degree !== '.') {
+          const note = this.getBassNote(degree, rootNote);
+          this.synth?.triggerAttackRelease(note, '8n', time);
+        }
+      },
+      Array.from({ length: totalSteps }, (_, i) => i),
+      '16n'
+    );
+
+    this.sequence.loop = true;
+    this.sequence.start(0);
+  }
+
+  stop() {
+    if (this.sequence) {
+      this.sequence.stop();
+      this.sequence.dispose();
+      this.sequence = null;
+    }
+  }
+
+  dispose() {
+    this.stop();
+    this.synth?.dispose();
+    this.synth = null;
+    this.isInitialized = false;
+  }
+}
+
+// Singleton bass synth
+let bassSynthInstance: BassSynth | null = null;
+
+export function getBassSynth(): BassSynth {
+  if (!bassSynthInstance) {
+    bassSynthInstance = new BassSynth();
+  }
+  return bassSynthInstance;
 }
 
 // ============ CHORD RHYTHM PATTERNS ============
@@ -487,10 +642,12 @@ export class ChordProgressionPlayer {
   private onChordChange?: (index: number) => void;
   private currentInstrument: InstrumentType = 'piano';
   private drumMachine: DrumMachine;
+  private bassSynth: BassSynth;
 
   constructor() {
     // Synth will be created on first play (due to audio context restrictions)
     this.drumMachine = getDrumMachine();
+    this.bassSynth = getBassSynth();
   }
 
   private async initSynth(instrument: InstrumentType) {
@@ -555,7 +712,8 @@ export class ChordProgressionPlayer {
     voicing: VoicingStyle = 'standard',
     instrument: InstrumentType = 'piano',
     drumPattern: DrumPattern = 'none',
-    chordRhythm: ChordRhythm = 'sustain'
+    chordRhythm: ChordRhythm = 'sustain',
+    bassPattern: BassPattern = 'none'
   ): Promise<void> {
     // Initialize audio context (must be triggered by user action)
     await Tone.start();
@@ -566,6 +724,10 @@ export class ChordProgressionPlayer {
     // Initialize drum machine
     await this.drumMachine.init();
     this.drumMachine.setPattern(drumPattern);
+
+    // Initialize bass synth
+    await this.bassSynth.init();
+    this.bassSynth.setPattern(bassPattern);
 
     this.onChordChange = onChordChange;
 
@@ -669,6 +831,9 @@ export class ChordProgressionPlayer {
     // Start drums (will only play if pattern is not 'none')
     this.drumMachine.start(beatsPerChord);
 
+    // Start bass (will only play if pattern is not 'none')
+    this.bassSynth.start(chords, beatsPerChord);
+
     Tone.getTransport().start();
     this.isPlaying = true;
   }
@@ -676,6 +841,9 @@ export class ChordProgressionPlayer {
   stop(): void {
     // Stop drums
     this.drumMachine.stop();
+
+    // Stop bass
+    this.bassSynth.stop();
 
     if (this.sequence) {
       this.sequence.stop();

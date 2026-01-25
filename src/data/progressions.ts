@@ -109,6 +109,24 @@ export const progressions: ChordProgression[] = [
     description: 'A classic 12-bar blues variation. Raw and powerful.',
     keyType: 'major',
   },
+  {
+    id: 'twelve-bar-blues',
+    name: '12-Bar Blues',
+    numerals: ['I7', 'I7', 'I7', 'I7', 'IV7', 'IV7', 'I7', 'I7', 'V7', 'IV7', 'I7', 'V7'],
+    moods: ['blues', 'classic', 'jam', 'rock'],
+    famousSongs: ['Sweet Home Chicago', 'Pride and Joy', 'The Thrill Is Gone', 'Stormy Monday'],
+    description: 'The classic 12-bar blues progression. Perfect for jamming and soloing over.',
+    keyType: 'major',
+  },
+  {
+    id: 'quick-change-blues',
+    name: 'Quick Change Blues',
+    numerals: ['I7', 'IV7', 'I7', 'I7', 'IV7', 'IV7', 'I7', 'I7', 'V7', 'IV7', 'I7', 'V7'],
+    moods: ['blues', 'jam', 'texas', 'classic'],
+    famousSongs: ['Texas Flood', 'Crossroads', 'Red House'],
+    description: 'Blues with quick IV change in bar 2. Popular in Texas blues.',
+    keyType: 'major',
+  },
   // Minor key progressions
   {
     id: 'im-bvi-biii-bvii',

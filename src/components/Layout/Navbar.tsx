@@ -15,6 +15,7 @@ export function Navbar({ darkMode, onToggleDarkMode }: NavbarProps) {
     { path: '/progressions', label: 'Progressions' },
     { path: '/songs', label: 'Songs Database' },
     { path: '/theory', label: 'Theory' },
+    { path: '/session', label: 'Practice' },
     ...(user ? [{ path: '/my-songs', label: 'My Songs' }] : []),
   ];
 

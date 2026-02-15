@@ -8,6 +8,7 @@ import { SongsDatabase } from './pages/SongsDatabase';
 import { MySongs } from './pages/MySongs';
 import { Auth } from './pages/Auth';
 import { Theory } from './pages/Theory';
+import { Session } from './pages/Session';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -41,6 +42,7 @@ function App() {
             <Route path="/my-songs" element={<MySongs />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/theory" element={<Theory />} />
+            <Route path="/session" element={<Session />} />
           </Routes>
         </Layout>
       </div>

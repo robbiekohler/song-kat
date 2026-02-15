@@ -44,3 +44,38 @@ export interface KeySignature {
 export type Mood = 'happy' | 'sad' | 'epic' | 'chill' | 'dramatic' | 'uplifting' | 'melancholic' | 'energetic' | 'romantic';
 
 export type Genre = 'pop' | 'rock' | 'jazz' | 'folk' | 'blues' | 'country' | 'r&b' | 'soul' | 'indie' | 'classical';
+
+// Guitar Practice Session types
+export interface SessionBlock {
+  id: string;
+  name: string;
+  description: string;
+  defaultMinutes: number;
+  icon: string;
+  suggestions: string[];
+}
+
+export interface StrummingPattern {
+  id: string;
+  name: string;
+  pattern: ('D' | 'U' | 'x' | '-')[];  // D=down, U=up, x=muted hit, -=rest
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  genres: string[];
+  description: string;
+  bpmRange: [number, number];
+}
+
+export interface ActiveSession {
+  blocks: ActiveBlock[];
+  totalMinutes: number;
+  startedAt: number | null;
+  currentBlockIndex: number;
+}
+
+export interface ActiveBlock {
+  blockId: string;
+  name: string;
+  minutes: number;
+  completed: boolean;
+  notes: string;
+}

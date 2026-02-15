@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { supabase, supabaseConfigured } from './supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -17,13 +17,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(supabaseConfigured);
 
   useEffect(() => {
+    if (!supabaseConfigured) return;
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -40,16 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    if (!supabaseConfigured) throw new Error('Supabase is not configured');
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!supabaseConfigured) throw new Error('Supabase is not configured');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
   const signInWithGoogle = async () => {
+    if (!supabaseConfigured) throw new Error('Supabase is not configured');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -60,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!supabaseConfigured) throw new Error('Supabase is not configured');
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };

@@ -1,13 +1,13 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Only create a real client if credentials are provided, otherwise
-// the app still renders (auth/db features will be unavailable).
-export const supabase: SupabaseClient = supabaseUrl && supabaseAnonKey
+export const supabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+export const supabase = supabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://placeholder.supabase.co', 'placeholder');
+  : null!;
 
 // Database types
 export interface DbSong {
@@ -21,6 +21,7 @@ export interface DbSong {
 }
 
 export async function getSongs(userId: string): Promise<DbSong[]> {
+  if (!supabaseConfigured) return [];
   const { data, error } = await supabase
     .from('songs')
     .select('*')
@@ -32,6 +33,7 @@ export async function getSongs(userId: string): Promise<DbSong[]> {
 }
 
 export async function createSong(song: Omit<DbSong, 'id' | 'created_at'>): Promise<DbSong> {
+  if (!supabaseConfigured) throw new Error('Supabase is not configured');
   const { data, error } = await supabase
     .from('songs')
     .insert(song)
@@ -43,6 +45,7 @@ export async function createSong(song: Omit<DbSong, 'id' | 'created_at'>): Promi
 }
 
 export async function updateSong(id: string, updates: Partial<DbSong>): Promise<DbSong> {
+  if (!supabaseConfigured) throw new Error('Supabase is not configured');
   const { data, error } = await supabase
     .from('songs')
     .update(updates)
@@ -55,6 +58,7 @@ export async function updateSong(id: string, updates: Partial<DbSong>): Promise<
 }
 
 export async function deleteSong(id: string): Promise<void> {
+  if (!supabaseConfigured) throw new Error('Supabase is not configured');
   const { error } = await supabase
     .from('songs')
     .delete()
